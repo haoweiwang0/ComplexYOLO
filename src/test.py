@@ -17,7 +17,7 @@ from easydict import EasyDict as edict
 import cv2
 import torch
 import numpy as np
-from tqdm.auto import tqdm
+from tqdm import tqdm
 
 sys.path.append('../')
 
