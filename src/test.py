@@ -93,7 +93,7 @@ if __name__ == '__main__':
     configs.distributed = False  # For testing
 
     model = create_model(configs)
-    model.print_network()
+    #model.print_network()
     print('\n\n' + '-*=' * 30 + '\n\n')
     
     device_string = 'cpu' if configs.no_cuda else 'cuda:{}'.format(configs.gpu_idx)
