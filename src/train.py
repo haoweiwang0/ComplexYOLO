@@ -148,7 +148,9 @@ def main_worker(gpu_idx, configs):
         if configs.distributed:
             train_sampler.set_epoch(epoch)
         # train for one epoch
-        train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, configs, logger, tb_writer)
+        model, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
+            model, optimizer, train_dataloader, lr_scheduler)
+        train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, configs, logger, tb_writer, accelerator)
         if not configs.no_val:
             val_dataloader = create_val_dataloader(configs)
             print('number of batches in val_dataloader: {}'.format(len(val_dataloader)))
@@ -183,7 +185,7 @@ def cleanup():
     dist.destroy_process_group()
 
 
-def train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, configs, logger, tb_writer):
+def train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, configs, logger, tb_writer, accelerator):
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
@@ -192,9 +194,6 @@ def train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, con
                              prefix="Train - Epoch: [{}/{}]".format(epoch, configs.num_epochs))
 
     num_iters_per_epoch = len(train_dataloader)
-
-    model, optimizer, train_dataloader, lr_scheduler = Accelerator.prepare(
-        model, optimizer, train_dataloader, lr_scheduler)
 
     # switch to train mode
     model.train()
@@ -216,7 +215,7 @@ def train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, con
 
         # compute gradient and perform backpropagation
         #total_loss.backward()
-        Accelerator.backward(total_loss)
+        accelerator.backward(total_loss)
         if global_step % configs.subdivisions == 0:
             optimizer.step()
             # Adjust learning rate
