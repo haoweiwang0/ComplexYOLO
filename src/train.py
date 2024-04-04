@@ -56,7 +56,7 @@ def main():
 def main_worker(gpu_idx, configs):
     configs.gpu_idx = gpu_idx
     configs.device = torch.device('cpu' if configs.gpu_idx is None else 'cuda:{}'.format(configs.gpu_idx))
-    accelerator = Accelerator(fp16=True)
+    accelerator = Accelerator(mixed_precision="no")
     configs.device = accelerator.device
 
     if configs.distributed:
