@@ -13,6 +13,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.utils.data.distributed
 from tqdm import tqdm
+from accelerate import Accelerator
 
 sys.path.append('./')
 
@@ -55,6 +56,8 @@ def main():
 def main_worker(gpu_idx, configs):
     configs.gpu_idx = gpu_idx
     configs.device = torch.device('cpu' if configs.gpu_idx is None else 'cuda:{}'.format(configs.gpu_idx))
+    accelerator = Accelerator(fp16=True)
+    configs.device = accelerator.device
 
     if configs.distributed:
         if configs.dist_url == "env://" and configs.rank == -1:
@@ -190,6 +193,9 @@ def train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, con
 
     num_iters_per_epoch = len(train_dataloader)
 
+    model, optimizer, train_dataloader, lr_scheduler = Accelerator.prepare(
+        model, optimizer, train_dataloader, lr_scheduler)
+
     # switch to train mode
     model.train()
     start_time = time.time()
@@ -209,7 +215,8 @@ def train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, con
             total_loss = torch.mean(total_loss)
 
         # compute gradient and perform backpropagation
-        total_loss.backward()
+        #total_loss.backward()
+        Accelerator.backward(total_loss)
         if global_step % configs.subdivisions == 0:
             optimizer.step()
             # Adjust learning rate
